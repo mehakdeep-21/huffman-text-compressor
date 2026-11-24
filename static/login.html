@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login - Huffman Text Compressor</title>
+<style>
+  :root {
+    --bg:#0f1420; --panel:#171e2e; --panel2:#1d2639; --line:#2a3550; --text:#e6ebf5;
+    --muted:#8b97b1; --accent:#5b8cff; --accent2:#33d6a6; --err:#ff6b6b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+         font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); padding:20px; }
+  .brand { text-align:center; margin-bottom:22px; }
+  .brand h1 { margin:0 0 6px; font-size:24px; }
+  .brand p { margin:0; color:var(--muted); font-size:14px; }
+  .card { width:100%; max-width:400px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:24px; }
+  .tabs { display:flex; gap:8px; margin-bottom:20px; }
+  .tab { flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--muted); padding:10px; border-radius:10px; cursor:pointer; font-size:15px; font-weight:600; }
+  .tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  label { display:block; font-size:13px; color:var(--muted); margin:14px 0 6px; }
+  input { width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:11px 12px; font-size:15px; }
+  input:focus { outline:2px solid var(--accent); }
+  .hint { color:var(--muted); font-size:12px; margin-top:6px; }
+  .pw { position:relative; }
+  .pw button { position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:0; color:var(--muted); cursor:pointer; font-size:12px; padding:6px 8px; }
+  .submit { width:100%; margin-top:20px; background:var(--accent); color:#fff; border:0; padding:12px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; }
+  .submit:disabled { opacity:.5; cursor:not-allowed; }
+  .error { display:none; background:rgba(255,107,107,.12); border:1px solid var(--err); color:var(--err); padding:10px 14px; border-radius:10px; margin-bottom:6px; font-size:14px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+  <div class="brand">
+    <h1>Huffman Text Compressor</h1>
+    <p>Log in to compress and decompress text</p>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button type="button" class="tab active" data-mode="login">Login</button>
+      <button type="button" class="tab" data-mode="signup">Sign up</button>
+    </div>
+
+    <div id="error" class="error" role="alert"></div>
+
+    <form id="form" autocomplete="on">
+      <label for="username">Username</label>
+      <input id="username" name="username" autocomplete="username" required minlength="3" maxlength="20" autofocus>
+      <div class="hint hidden" id="userHint">3-20 letters, digits or underscore.</div>
+
+      <label for="password">Password</label>
+      <div class="pw">
+        <input id="password" name="password" type="password" autocomplete="current-password" required minlength="6">
+        <button type="button" id="toggle">Show</button>
+      </div>
+      <div class="hint hidden" id="pwHint">At least 6 characters.</div>
+
+      <div id="confirmWrap" class="hidden">
+        <label for="confirm">Confirm password</label>
+        <input id="confirm" type="password" autocomplete="new-password">
+      </div>
+
+      <button class="submit" id="submit" type="submit">Login</button>
+    </form>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+let mode = "login";
+
+function showError(msg) { const e = $("error"); e.textContent = msg; e.style.display = msg ? "block" : "none"; }
+
+function setMode(m) {
+  mode = m;
+  const signup = m === "signup";
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === m));
+  $("confirmWrap").classList.toggle("hidden", !signup);
+  $("userHint").classList.toggle("hidden", !signup);
+  $("pwHint").classList.toggle("hidden", !signup);
+  $("confirm").required = signup;
+  $("password").autocomplete = signup ? "new-password" : "current-password";
+  $("submit").textContent = signup ? "Create account" : "Login";
+  showError("");
+}
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => setMode(t.dataset.mode));
+if (location.pathname === "/signup") setMode("signup");
+
+$("toggle").onclick = () => {
+  const show = $("password").type === "password";
+  $("password").type = show ? "text" : "password";
+  $("toggle").textContent = show ? "Hide" : "Show";
+};
+
+$("form").onsubmit = async e => {
+  e.preventDefault();
+  showError("");
+  const username = $("username").value.trim();
+  const password = $("password").value;
+  if (mode === "signup") {
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) return showError("Username must be 3-20 letters, digits or underscore.");
+    if (password.length < 6) return showError("Password must be at least 6 characters.");
+    if (password !== $("confirm").value) return showError("Passwords do not match.");
+  }
+  $("submit").disabled = true;
+  try {
+    const res = await fetch("/api/" + mode, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({username, password})
+    });
+    const data = await res.json().catch(() => ({error: "Bad server response."}));
+    if (!res.ok) throw new Error(data.error || "Request failed.");
+    location.href = "/";
+  } catch (err) {
+    showError(err.message === "Failed to fetch" ? "Cannot reach the server. Is the Java server running?" : err.message);
+  } finally {
+    $("submit").disabled = false;
+  }
+};
+</script>
+</body>
+</html>
