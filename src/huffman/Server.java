@@ -107,7 +107,7 @@ public final class Server {
 
         server.setExecutor(Executors.newFixedThreadPool(8));
         server.start();
-        System.out.println("Huffman compressor running at http://localhost:" + port + "  (Ctrl+C to stop)");
+        System.out.println("Treezip running at http://localhost:" + port + "  (Ctrl+C to stop)");
     }
 
     // ------------------------------------------------------------ helpers

@@ -1,4 +1,4 @@
-# Huffman Text Compressor (Core Java + HTML/CSS)
+# Treezip: Huffman Text Compressor (Core Java + HTML/CSS)
 
 Web-based text compression app. Java backend (JDK only), HTML/CSS/JS frontend.
 
